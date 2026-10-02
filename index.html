@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BullPulse Terminal | Institutional Market Insights & Trading Signals</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: JetBrains Mono for terminal/quant feel, Inter for crisp legibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js CDN for Calculator Visualizer -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            terminal: {
+              bg: '#0a0d14',
+              card: '#111622',
+              border: '#1c2436',
+              accent: '#161e2e'
+            },
+            bull: {
+              DEFAULT: '#00e676',
+              glow: 'rgba(0, 230, 118, 0.25)',
+              dark: '#00b050'
+            },
+            bear: {
+              DEFAULT: '#ff5252',
+              glow: 'rgba(255, 82, 82, 0.25)'
+            },
+            cyan: {
+              electric: '#00e5ff'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0a0d14;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Terminal Glow Overlay */
+    .terminal-bg-glow {
+      background: radial-gradient(circle at 50% -10%, rgba(0, 229, 255, 0.12), rgba(0, 230, 118, 0.08) 35%, rgba(10, 13, 20, 1) 75%);
+    }
+
+    /* Glassmorphism Cards */
+    .glass-card {
+      background: rgba(17, 22, 34, 0.75);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    
+    .glass-card-bull {
+      background: rgba(17, 22, 34, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      box-shadow: 0 0 30px -5px rgba(0, 230, 118, 0.15);
+    }
+
+    /* Custom Ticker Marquee Scroll */
+    @keyframes tickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-ticker {
+      display: flex;
+      width: max-content;
+      animation: tickerScroll 35s linear infinite;
+    }
+    .animate-ticker:hover {
+      animation-play-state: paused;
+    }
+
+    /* Flash Effects for Ticker updates */
+    @keyframes flashGreen {
+      0% { background-color: rgba(0, 230, 118, 0.4); }
+      100% { background-color: transparent; }
+    }
+    @keyframes flashRed {
+      0% { background-color: rgba(255, 82, 82, 0.4); }
+      100% { background-color: transparent; }
+    }
+    .flash-up { animation: flashGreen 0.8s ease-out; }
+    .flash-down { animation: flashRed 0.8s ease-out; }
+
+    /* Custom Slider Styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #1c2436;
+      border-radius: 8px;
+      height: 6px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #00e676;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.8);
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Speedometer Needle Transition */
+    .needle-transition {
+      transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-bull selection:text-black pb-20 md:pb-0">
+
+  <!-- Top Live Scrolling Ticker Banner -->
+  <div class="bg-terminal-card border-b border-terminal-border py-2 overflow-hidden relative z-50 select-none">
+    <div class="flex items-center">
+      <div class="bg-terminal-bg px-3 py-1 text-[11px] font-mono font-bold text-bull border-r border-terminal-border flex items-center gap-2 shrink-0 z-10 shadow-lg">
+        <span class="w-2 h-2 rounded-full bg-bull animate-ping"></span>
+        <span>LIVE MARKET FEED</span>
+      </div>
+      
+      <div class="overflow-hidden w-full">
+        <div id="ticker-container" class="animate-ticker font-mono text-xs text-gray-300">
+          <!-- Ticker items injected dynamically via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-terminal-bg/85 backdrop-blur-md border-b border-terminal-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-bull via-cyan-electric to-emerald-500 p-0.5 shadow-lg shadow-bull/20 group-hover:scale-105 transition-transform">
+          <div class="w-full h-full bg-terminal-bg rounded-[10px] flex items-center justify-center">
+            <i class="fa-solid fa-chart-line text-bull text-lg group-hover:rotate-12 transition-transform duration-300"></i>
+          </div>
+        </div>
+        <div>
+          <span id="nav-brand-name" class="font-mono font-extrabold text-xl tracking-wider text-white flex items-center gap-1.5">
+            BULL<span class="text-bull">PULSE</span>
+          </span>
+          <span class="text-[9px] font-mono text-gray-400 tracking-widest uppercase block -mt-1">
+            Quant Terminal & Signal Engine
+          </span>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center gap-8 text-xs font-mono text-gray-300">
+        <a href="#sentiment" class="hover:text-bull transition-colors">SENTIMENT GAUGE</a>
+        <a href="#calculator" class="hover:text-bull transition-colors">PROFIT CALCULATOR</a>
+        <a href="#signals" class="hover:text-bull transition-colors">LIVE SIGNALS</a>
+        <a href="#proof" class="hover:text-bull transition-colors">VERIFIED PROOF</a>
+        <a href="#faq" class="hover:text-bull transition-colors">FAQ</a>
+      </nav>
+
+      <!-- Telegram Action Button -->
+      <div class="flex items-center gap-3">
+        <button onclick="handleTelegramClick()" class="telegram-link inline-flex items-center gap-2 bg-gradient-to-r from-bull to-emerald-500 hover:from-emerald-400 hover:to-teal-400 text-terminal-bg font-mono font-extrabold px-4 py-2 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-bull/20 hover:shadow-bull/40 transition-all active:scale-95">
+          <i class="fa-brands fa-telegram text-sm"></i>
+          <span class="hidden sm:inline">Join VIP Terminal</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative terminal-bg-glow pt-8 pb-16 md:pt-16 md:pb-24 overflow-hidden border-b border-terminal-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Left Hero Text Column -->
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+          
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-terminal-card border border-bull/40 text-bull text-xs font-mono tracking-wider uppercase shadow-md">
+            <span class="w-2 h-2 rounded-full bg-bull animate-pulse"></span>
+            <span id="hero-tag">INSTITUTIONAL GRADE TRADING SIGNALS</span>
+          </div>
+
+          <h1 id="hero-headline" class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight font-mono">
+            Trade With <span class="text-transparent bg-clip-text bg-gradient-to-r from-bull via-cyan-electric to-emerald-400">Institutional Accuracy</span>
+          </h1>
+
+          <p id="hero-subheadline" class="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+            Join over <span class="text-bull font-mono font-bold" id="stat-hero-traders">35,000+ Active Traders</span> leveraging real-time algorithmic breakout alerts, FII/DII flow analysis, and high-probability options strategies.
+          </p>
+
+          <!-- Key Metrics Pills -->
+          <div class="flex flex-wrap justify-center lg:justify-start gap-3 pt-2">
+            <div class="bg-terminal-card/80 border border-terminal-border px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-mono">
+              <i class="fa-solid fa-bullseye text-bull"></i>
+              <span class="text-gray-400">Accuracy Rate:</span>
+              <span class="text-white font-bold" id="metric-accuracy">88.6%</span>
+            </div>
+            <div class="bg-terminal-card/80 border border-terminal-border px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-mono">
+              <i class="fa-solid fa-bolt text-cyan-electric"></i>
+              <span class="text-gray-400">Avg. Risk-Reward:</span>
+              <span class="text-white font-bold">1:2.8</span>
+            </div>
+            <div class="bg-terminal-card/80 border border-terminal-border px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-mono">
+              <i class="fa-solid fa-shield-halved text-bull"></i>
+              <span class="text-gray-400">Strict Stop-Loss</span>
+            </div>
+          </div>
+
+          <!-- Hero CTA Buttons -->
+          <div class="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            <button onclick="handleTelegramClick()" class="telegram-link w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-bull via-emerald-500 to-cyan-electric hover:brightness-110 text-terminal-bg font-mono font-black px-8 py-4 rounded-2xl text-sm uppercase tracking-wider shadow-xl shadow-bull/30 transition-all active:scale-95">
+              <i class="fa-brands fa-telegram text-xl"></i>
+              <span>Get Free VIP Telegram Signals</span>
+              <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+          </div>
+
+          <p class="text-[11px] text-gray-400 font-mono flex items-center justify-center lg:justify-start gap-2">
+            <i class="fa-solid fa-circle-check text-bull"></i> Zero Fees • Real-time Push Notifications • Direct Algo Alerts
+          </p>
+
+        </div>
+
+        <!-- Right Terminal Mock Card -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="w-full max-w-md">
+            <div class="glass-card-bull rounded-2xl p-5 relative overflow-hidden border border-bull/30">
+              
+              <!-- Terminal Bar Header -->
+              <div class="flex items-center justify-between border-b border-terminal-border pb-3 mb-4 font-mono text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+                  <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+                  <span class="w-3 h-3 rounded-full bg-bull/80 inline-block"></span>
+                  <span class="text-gray-400 text-[11px] ml-2">BULL-TERMINAL-v4.2</span>
+                </div>
+                <span class="text-bull bg-bull/10 px-2 py-0.5 rounded text-[10px] font-bold">ALGO RUNNING</span>
+              </div>
+
+              <!-- Live Signal Preview Card inside Hero -->
+              <div class="space-y-3 font-mono">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-400">ACTIVE BREAKOUT CALL</span>
+                  <span class="text-[10px] text-cyan-electric bg-cyan-electric/10 px-2 py-0.5 rounded">NIFTY 24,500 CE</span>
+                </div>
+
+                <div class="bg-terminal-bg/80 p-3.5 rounded-xl border border-terminal-border space-y-2">
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="font-bold text-white">NIFTY OPTION CALL</span>
+                    <span class="text-bull font-bold flex items-center gap-1">
+                      <i class="fa-solid fa-caret-up"></i> BUY ABOVE
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-terminal-border/60">
+                    <div>
+                      <span class="text-gray-400 text-[10px] block">ENTRY</span>
+                      <span class="text-white font-bold">₹142.50</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 text-[10px] block">TARGET</span>
+                      <span class="text-bull font-bold">₹185.00</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 text-[10px] block">STOP LOSS</span>
+                      <span class="text-bear font-bold">₹124.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-gray-300 pt-1">
+                  <span>Probability Score:</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-24 bg-terminal-border h-2 rounded-full overflow-hidden">
+                      <div class="bg-gradient-to-r from-bull to-cyan-electric h-full w-[91%]"></div>
+                    </div>
+                    <span class="text-bull font-bold text-[11px]">91%</span>
+                  </div>
+                </div>
+
+                <button onclick="handleTelegramClick()" class="telegram-link w-full bg-bull/10 hover:bg-bull/20 text-bull border border-bull/40 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all">
+                  <i class="fa-solid fa-lock-open"></i>
+                  <span>UNLOCK LIVE TARGET & TRAILING SL</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Market Sentiment Gauge Section -->
+  <section id="sentiment" class="py-16 bg-terminal-bg relative border-b border-terminal-border">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-xl mx-auto mb-10">
+        <span class="bg-cyan-electric/10 border border-cyan-electric/30 text-cyan-electric text-xs font-mono uppercase px-3 py-1 rounded-full inline-block mb-2">
+          Real-Time Institutional Flow Index
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+          Market Sentiment Meter
+        </h2>
+        <p class="text-gray-400 text-xs sm:text-sm mt-1">
+          Combining Put-Call Ratio (PCR), FII Net Flow, and VIX volatility metrics.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-3xl mx-auto border border-terminal-border">
+        
+        <!-- Speedometer Gauge Visual -->
+        <div class="relative w-64 sm:w-80 h-32 sm:h-40 mx-auto overflow-hidden">
+          <!-- Semi circle arc background -->
+          <div class="w-64 sm:w-80 h-64 sm:h-80 rounded-full border-[18px] sm:border-[22px] border-terminal-border border-t-bear border-r-bull border-b-transparent border-l-bear/80 absolute top-0 left-0 rotate-45"></div>
+          
+          <!-- Needle -->
+          <div id="gauge-needle" class="w-1.5 h-28 sm:h-36 bg-white absolute bottom-0 left-1/2 -ml-0.75 origin-bottom needle-transition rounded-full shadow-lg shadow-white/50" style="transform: rotate(42deg);">
+            <div class="w-5 h-5 bg-bull rounded-full absolute top-0 -left-1.75 shadow-md"></div>
+          </div>
+          
+          <!-- Center hub -->
+          <div class="w-8 h-8 bg-terminal-card border-2 border-white rounded-full absolute bottom-0 left-1/2 -ml-4 z-10"></div>
+        </div>
+
+        <!-- Sentiment Labels -->
+        <div class="flex justify-between max-w-xs sm:max-w-md mx-auto text-xs font-mono pt-2 text-gray-400 font-bold">
+          <span class="text-bear">EXTREME BEARISH</span>
+          <span class="text-yellow-400">NEUTRAL</span>
+          <span class="text-bull">EXTREME BULLISH</span>
+        </div>
+
+        <!-- Dynamic Value Box -->
+        <div class="text-center my-6 space-y-1">
+          <div id="sentiment-score" class="text-3xl sm:text-4xl font-extrabold font-mono text-bull">
+            78 / 100
+          </div>
+          <div id="sentiment-status" class="text-sm font-mono font-bold text-gray-200 tracking-wider">
+            STRONGLY BULLISH MARKET STRUCTURE
+          </div>
+          <p id="sentiment-desc" class="text-xs text-gray-400 max-w-md mx-auto">
+            PCR at 1.34 with aggressive FII long buildup. Calls favoring momentum breakouts.
+          </p>
+        </div>
+
+        <!-- Interactive Gauge Action Controls -->
+        <div class="flex flex-wrap justify-center gap-3 pt-2">
+          <button onclick="refreshSentiment()" class="bg-terminal-card hover:bg-terminal-border border border-terminal-border text-white font-mono text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all active:scale-95">
+            <i class="fa-solid fa-rotate text-cyan-electric"></i>
+            <span>Refresh Sentiment Engine</span>
+          </button>
+
+          <button onclick="handleTelegramClick()" class="telegram-link bg-bull/10 hover:bg-bull/20 border border-bull/40 text-bull font-mono text-xs font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all">
+            <i class="fa-brands fa-telegram"></i>
+            <span>Get FII/DII Net Positioning Data</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Investment / Profit Calculator -->
+  <section id="calculator" class="py-16 bg-terminal-bg/50 relative border-b border-terminal-border">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <span class="bg-bull/10 border border-bull/30 text-bull text-xs font-mono uppercase px-3 py-1 rounded-full inline-block mb-2">
+          Compound Wealth Projection
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white font-mono">
+          Interactive Wealth Calculator
+        </h2>
+        <p class="text-gray-400 text-xs sm:text-sm mt-1">
+          Simulate compound growth using systematic trading plans or equity investment returns.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-6 glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-terminal-border">
+          
+          <!-- Slider 1: Initial Investment -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-300">Initial Capital (₹)</span>
+              <span id="val-initial" class="text-bull font-bold text-sm">₹50,000</span>
+            </div>
+            <input type="range" id="input-initial" min="5000" max="1000000" step="5000" value="50000" class="w-full">
+          </div>
+
+          <!-- Slider 2: Monthly SIP / Addition -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-300">Monthly Contribution (₹)</span>
+              <span id="val-monthly" class="text-bull font-bold text-sm">₹10,000</span>
+            </div>
+            <input type="range" id="input-monthly" min="0" max="100000" step="1000" value="10000" class="w-full">
+          </div>
+
+          <!-- Slider 3: Expected Annual Return -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-300">Expected Annual Return (%)</span>
+              <span id="val-rate" class="text-cyan-electric font-bold text-sm">22%</span>
+            </div>
+            <input type="range" id="input-rate" min="8" max="40" step="1" value="22" class="w-full">
+            <p class="text-[10px] text-gray-400">VIP Algorithmic strategies average 18-28% annual compound growth.</p>
+          </div>
+
+          <!-- Slider 4: Time Horizon -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-300">Time Horizon (Years)</span>
+              <span id="val-years" class="text-white font-bold text-sm">5 Years</span>
+            </div>
+            <input type="range" id="input-years" min="1" max="25" step="1" value="5" class="w-full">
+          </div>
+
+        </div>
+
+        <!-- Result Display & Chart Column -->
+        <div class="lg:col-span-6 glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-terminal-border flex flex-col justify-between h-full">
+          
+          <div class="grid grid-cols-2 gap-4 text-center">
+            <div class="bg-terminal-bg p-4 rounded-2xl border border-terminal-border">
+              <span class="text-gray-400 text-xs font-mono block mb-1">Total Invested</span>
+              <span id="calc-total-invested" class="text-lg sm:text-2xl font-bold font-mono text-white">₹6,50,000</span>
+            </div>
+            <div class="bg-terminal-bg p-4 rounded-2xl border border-bull/30">
+              <span class="text-gray-400 text-xs font-mono block mb-1">Est. Future Wealth</span>
+              <span id="calc-future-wealth" class="text-lg sm:text-2xl font-bold font-mono text-bull">₹11,48,290</span>
+            </div>
+          </div>
+
+          <!-- Chart Visual Container -->
+          <div class="relative h-52 sm:h-60 w-full pt-4">
+            <canvas id="calculatorChart"></canvas>
+          </div>
+
+          <div class="pt-2 text-center">
+            <button onclick="handleTelegramClick()" class="telegram-link w-full bg-gradient-to-r from-bull to-emerald-600 hover:brightness-110 text-terminal-bg font-mono font-extrabold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-bull/20 transition-all">
+              <i class="fa-brands fa-telegram text-base mr-2"></i>
+              Start Executing High Yield Strategies
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Stock Trading Strategy / Signal Previewer -->
+  <section id="signals" class="py-16 bg-terminal-bg relative border-b border-terminal-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-2xl mx-auto mb-10">
+        <span class="bg-cyan-electric/10 border border-cyan-electric/30 text-cyan-electric text-xs font-mono uppercase px-3 py-1 rounded-full inline-block mb-2">
+          High Probability Setups
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white font-mono">
+          Live Algo Signal Previewer
+        </h2>
+        <p class="text-gray-400 text-xs sm:text-sm mt-1">
+          Filtered by market category and real-time technical momentum triggers.
+        </p>
+      </div>
+
+      <!-- Strategy Tabs -->
+      <div class="flex justify-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none font-mono text-xs">
+        <button onclick="filterSignals('all')" class="signal-tab active-tab bg-bull text-terminal-bg font-bold px-4 py-2.5 rounded-xl transition-all">
+          ALL SIGNALS
+        </button>
+        <button onclick="filterSignals('intraday')" class="signal-tab bg-terminal-card border border-terminal-border text-gray-300 hover:text-white px-4 py-2.5 rounded-xl transition-all">
+          INTRADAY
+        </button>
+        <button onclick="filterSignals('options')" class="signal-tab bg-terminal-card border border-terminal-border text-gray-300 hover:text-white px-4 py-2.5 rounded-xl transition-all">
+          OPTIONS BUYING
+        </button>
+        <button onclick="filterSignals('swing')" class="signal-tab bg-terminal-card border border-terminal-border text-gray-300 hover:text-white px-4 py-2.5 rounded-xl transition-all">
+          SWING BREAKOUTS
+        </button>
+      </div>
+
+      <!-- Signal Cards Grid -->
+      <div id="signals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Injected dynamically via JS -->
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Live Profit & Loss Success Stories / Community Proof Carousel/Grid -->
+  <section id="proof" class="py-16 bg-terminal-bg/60 relative border-b border-terminal-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <span class="bg-bull/10 border border-bull/30 text-bull text-xs font-mono uppercase px-3 py-1 rounded-full inline-block mb-2">
+          Verified Community Track Record
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white font-mono">
+          Member Profit Statements
+        </h2>
+        <p class="text-gray-400 text-xs sm:text-sm mt-1">
+          Real verified P&L screenshots and testimonials shared by active community members.
+        </p>
+      </div>
+
+      <!-- Proof Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Proof Card 1 -->
+        <div class="glass-card rounded-2xl p-5 border border-terminal-border hover:border-bull/40 transition-all space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-bull/20 border border-bull/40 flex items-center justify-center font-mono font-bold text-bull text-sm">
+                RK
+              </div>
+              <div>
+                <h4 class="font-mono font-bold text-sm text-white">Rahul K.</h4>
+                <span class="text-[10px] text-gray-400">Options Trader • Verified</span>
+              </div>
+            </div>
+            <span class="text-bull font-mono font-extrabold text-sm bg-bull/10 px-2.5 py-1 rounded border border-bull/20">
+              +₹42,800 P&L
+            </span>
+          </div>
+          <p class="text-xs text-gray-300 leading-relaxed font-sans">
+            "Caught the Bank Nifty morning expiry breakout. Entry at ₹110 hit Target 2 at ₹225 in under 35 minutes!"
+          </p>
+          <div class="bg-terminal-bg p-3 rounded-xl border border-terminal-border text-[11px] font-mono text-gray-400 flex justify-between">
+            <span>Capital Used: ₹25,000</span>
+            <span class="text-bull">ROI: +171%</span>
+          </div>
+        </div>
+
+        <!-- Proof Card 2 -->
+        <div class="glass-card rounded-2xl p-5 border border-terminal-border hover:border-bull/40 transition-all space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-cyan-electric/20 border border-cyan-electric/40 flex items-center justify-center font-mono font-bold text-cyan-electric text-sm">
+                AM
+              </div>
+              <div>
+                <h4 class="font-mono font-bold text-sm text-white">Ankit M.</h4>
+                <span class="text-[10px] text-gray-400">Swing Trader • Verified</span>
+              </div>
+            </div>
+            <span class="text-bull font-mono font-extrabold text-sm bg-bull/10 px-2.5 py-1 rounded border border-bull/20">
+              +₹1,15,400 P&L
+            </span>
+          </div>
+          <p class="text-xs text-gray-300 leading-relaxed font-sans">
+            "Held TATA MOTORS breakout swing call for 6 trading sessions. Perfect trailing stop loss guidance."
+          </p>
+          <div class="bg-terminal-bg p-3 rounded-xl border border-terminal-border text-[11px] font-mono text-gray-400 flex justify-between">
+            <span>Capital Used: ₹3,50,000</span>
+            <span class="text-bull">ROI: +32.9%</span>
+          </div>
+        </div>
+
+        <!-- Proof Card 3 -->
+        <div class="glass-card rounded-2xl p-5 border border-terminal-border hover:border-bull/40 transition-all space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-mono font-bold text-emerald-400 text-sm">
+                PS
+              </div>
+              <div>
+                <h4 class="font-mono font-bold text-sm text-white">Pooja S.</h4>
+                <span class="text-[10px] text-gray-400">Intraday Trader • Verified</span>
+              </div>
+            </div>
+            <span class="text-bull font-mono font-extrabold text-sm bg-bull/10 px-2.5 py-1 rounded border border-bull/20">
+              +₹18,250 P&L
+            </span>
+          </div>
+          <p class="text-xs text-gray-300 leading-relaxed font-sans">
+            "The strict risk management guidelines saved me on choppy market days. Consistent small gains compounding fast."
+          </p>
+          <div class="bg-terminal-bg p-3 rounded-xl border border-terminal-border text-[11px] font-mono text-gray-400 flex justify-between">
+            <span>Capital Used: ₹40,000</span>
+            <span class="text-bull">ROI: +45.6%</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-16 bg-terminal-bg border-b border-terminal-border">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center mb-10">
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+          Frequently Asked Questions
+        </h2>
+        <p class="text-gray-400 text-xs sm:text-sm mt-1">Clear answers regarding VIP signals and execution</p>
+      </div>
+
+      <div class="space-y-3" id="faq-container">
+        
+        <!-- FAQ 1 -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-terminal-border">
+          <button onclick="toggleFaq(1)" class="w-full text-left p-4 sm:p-5 font-mono font-bold text-white text-xs sm:text-sm flex justify-between items-center gap-4 hover:text-bull transition-colors">
+            <span>1. Are the Telegram signals completely free to join?</span>
+            <i id="faq-icon-1" class="fa-solid fa-chevron-down text-bull text-xs transition-transform duration-200"></i>
+          </button>
+          <div id="faq-ans-1" class="hidden px-5 pb-5 text-xs text-gray-300 border-t border-terminal-border/50 pt-3 leading-relaxed">
+            Yes, our main VIP Telegram Channel provides daily free market analysis, index levels, option chain breakdowns, and select high-probability signal alerts.
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-terminal-border">
+          <button onclick="toggleFaq(2)" class="w-full text-left p-4 sm:p-5 font-mono font-bold text-white text-xs sm:text-sm flex justify-between items-center gap-4 hover:text-bull transition-colors">
+            <span>2. How are the trading signals generated?</span>
+            <i id="faq-icon-2" class="fa-solid fa-chevron-down text-bull text-xs transition-transform duration-200"></i>
+          </button>
+          <div id="faq-ans-2" class="hidden px-5 pb-5 text-xs text-gray-300 border-t border-terminal-border/50 pt-3 leading-relaxed">
+            Signals are derived using algorithmic quant models scanning volume breakouts, price action patterns, and real-time institutional FII/DII order flow data.
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-terminal-border">
+          <button onclick="toggleFaq(3)" class="w-full text-left p-4 sm:p-5 font-mono font-bold text-white text-xs sm:text-sm flex justify-between items-center gap-4 hover:text-bull transition-colors">
+            <span>3. What capital is required to follow the calls?</span>
+            <i id="faq-icon-3" class="fa-solid fa-chevron-down text-bull text-xs transition-transform duration-200"></i>
+          </button>
+          <div id="faq-ans-3" class="hidden px-5 pb-5 text-xs text-gray-300 border-t border-terminal-border/50 pt-3 leading-relaxed">
+            You can start with as low as ₹10,000 for options buying and equity intraday trades. We advocate strict risk allocation (never risking more than 2-3% per trade).
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Risk Disclaimer & Footer -->
+  <footer class="bg-terminal-card border-t border-terminal-border py-10 text-xs font-mono">
+    <div class="max-w-6xl mx-auto px-4 text-center space-y-6">
+      
+      <div class="flex items-center justify-center gap-2">
+        <i class="fa-solid fa-chart-line text-bull"></i>
+        <span class="font-extrabold text-sm text-white">BULLPULSE QUANT TERMINAL</span>
+      </div>
+
+      <div class="bg-terminal-bg p-4 rounded-2xl border border-terminal-border text-[11px] text-gray-400 max-w-3xl mx-auto text-left space-y-2 leading-relaxed">
+        <p class="font-bold text-bear uppercase">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> SEBI Compliance & Risk Disclosure:
+        </p>
+        <p>
+          Trading in Stock Markets, Derivatives (Futures & Options), and Foreign Exchange involves substantial risk of loss and is not suitable for every investor. All analysis, signals, and commentary provided are strictly for educational purposes only. We are not a SEBI Registered Investment Advisor. Please consult a qualified financial advisor before making any investment decisions.
+        </p>
+      </div>
+
+      <div class="text-[11px] text-gray-400 pt-4 border-t border-terminal-border">
+        &copy; <span id="year"></span> BullPulse Terminal Analytics. All Rights Reserved.
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Mobile Sticky Bottom CTA Bar -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-terminal-bg/95 backdrop-blur-lg border-t border-bull/40 p-3 flex items-center justify-between gap-3 shadow-2xl">
+    <div>
+      <span class="font-mono font-bold text-white text-xs block leading-tight">VIP SIGNAL ALERTS</span>
+      <span class="text-[10px] font-mono text-bull">35,000+ Active Members</span>
+    </div>
+    <button onclick="handleTelegramClick()" class="telegram-link flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-bull to-emerald-500 text-terminal-bg font-mono font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-md active:scale-95 transition-transform">
+      <i class="fa-brands fa-telegram text-base"></i>
+      <span>Join Telegram →</span>
+    </button>
+  </div>
+
+  <script>
+    /* 
+    ===================================================
+    CENTRALIZED CONFIGURATION OBJECT
+    ===================================================
+    */
+    const CONFIG = {
+      telegramUrl: "https://t.me/your_stock_market_channel", // Replace with your Telegram Link
+      channelName: "BullPulse Quant VIP",
+      activeTraders: "35,420+",
+      accuracyRate: "88.6%",
+      mainHeadline: "Trade With Institutional Accuracy",
+      brandName: "BULLPULSE"
+    };
+
+    // Simulated Ticker Tape Data
+    const tickerData = [
+      { symbol: "NIFTY 50", price: 24320.50, change: "+142.30", pct: "+0.59%", isUp: true },
+      { symbol: "BANK NIFTY", price: 52180.10, change: "+380.45", pct: "+0.73%", isUp: true },
+      { symbol: "SENSEX", price: 79820.40, change: "+410.15", pct: "+0.52%", isUp: true },
+      { symbol: "AAPL", price: 224.20, change: "-1.80", pct: "-0.80%", isUp: false },
+      { symbol: "TSLA", price: 254.60, change: "+12.40", pct: "+5.12%", isUp: true },
+      { symbol: "BTC/USD", price: 64200.00, change: "+1150.00", pct: "+1.82%", isUp: true },
+      { symbol: "RELIANCE", price: 3010.25, change: "-14.50", pct: "-0.48%", isUp: false },
+      { symbol: "HDFCBANK", price: 1680.00, change: "+18.20", pct: "+1.09%", isUp: true }
+    ];
+
+    // Simulated Trading Signals Data
+    const signalsData = [
+      {
+        id: 1,
+        category: "options",
+        type: "OPTIONS BUYING",
+        symbol: "BANK NIFTY 52,200 CE",
+        action: "BUY",
+        entry: "₹280.00",
+        target: "₹380.00",
+        sl: "₹240.00",
+        rr: "1:2.5",
+        time: "10 mins ago",
+        status: "ACTIVE BREAKOUT"
+      },
+      {
+        id: 2,
+        category: "intraday",
+        type: "EQUITY INTRADAY",
+        symbol: "TATASTEEL",
+        action: "BUY ABOVE",
+        entry: "₹168.50",
+        target: "₹174.00",
+        sl: "₹165.80",
+        rr: "1:2.1",
+        time: "25 mins ago",
+        status: "TARGET 1 NEAR"
+      },
+      {
+        id: 3,
+        category: "swing",
+        type: "SWING BREAKOUT",
+        symbol: "INFY (INFOSYS)",
+        action: "ACCUMULATE",
+        entry: "₹1,820.00",
+        target: "₹1,980.00",
+        sl: "₹1,750.00",
+        rr: "1:2.3",
+        time: "1 hour ago",
+        status: "HOLDING"
+      }
+    ];
+
+    // Global Telegram Redirect Function
+    function handleTelegramClick() {
+      if (CONFIG.telegramUrl) {
+        window.open(CONFIG.telegramUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        console.warn("Telegram URL is not configured in CONFIG.");
+      }
+    }
+
+    /* 1. Ticker Tape Generator & Simulated Live Pulse Engine */
+    function initTickerTape() {
+      const container = document.getElementById('ticker-container');
+      if (!container) return;
+
+      // Duplicate array for infinite seamless scroll loop
+      const fullList = [...tickerData, ...tickerData];
+
+      container.innerHTML = fullList.map((item, idx) => {
+        const colorClass = item.isUp ? "text-bull" : "text-bear";
+        const iconClass = item.isUp ? "fa-caret-up" : "fa-caret-down";
+        return `
+          <div id="ticker-item-${idx}" class="inline-flex items-center gap-2 px-4 border-r border-terminal-border/60 transition-colors duration-300">
+            <span class="font-bold text-white">${item.symbol}</span>
+            <span class="ticker-price">${item.price.toFixed(2)}</span>
+            <span class="${colorClass} flex items-center gap-1 font-bold">
+              <i class="fa-solid ${iconClass}"></i> ${item.change} (${item.pct})
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      // Simulate Periodic Live Price Fluctuations
+      setInterval(() => {
+        const randomIdx = Math.floor(Math.random() * tickerData.length);
+        const delta = (Math.random() - 0.48) * 12;
+        tickerData[randomIdx].price += delta;
+        tickerData[randomIdx].isUp = delta >= 0;
+
+        // Visual flash effect on ticker
+        const elements = [
+          document.getElementById(`ticker-item-${randomIdx}`),
+          document.getElementById(`ticker-item-${randomIdx + tickerData.length}`)
+        ];
+
+        elements.forEach(el => {
+          if (el) {
+            const priceEl = el.querySelector('.ticker-price');
+            if (priceEl) priceEl.innerText = tickerData[randomIdx].price.toFixed(2);
+            el.classList.add(delta >= 0 ? 'flash-up' : 'flash-down');
+            setTimeout(() => el.classList.remove('flash-up', 'flash-down'), 800);
+          }
+        });
+      }, 2500);
+    }
+
+    /* 2. Interactive Calculator Chart Engine */
+    let calcChart;
+
+    function initCalculator() {
+      const inputInitial = document.getElementById('input-initial');
+      const inputMonthly = document.getElementById('input-monthly');
+      const inputRate = document.getElementById('input-rate');
+      const inputYears = document.getElementById('input-years');
+
+      if (!inputInitial) return;
+
+      function updateCalculation() {
+        const P = parseFloat(inputInitial.value);
+        const PMT = parseFloat(inputMonthly.value);
+        const annualRate = parseFloat(inputRate.value) / 100;
+        const years = parseInt(inputYears.value);
+
+        // Update Labels
+        document.getElementById('val-initial').innerText = `₹${P.toLocaleString('en-IN')}`;
+        document.getElementById('val-monthly').innerText = `₹${PMT.toLocaleString('en-IN')}`;
+        document.getElementById('val-rate').innerText = `${inputRate.value}%`;
+        document.getElementById('val-years').innerText = `${years} ${years === 1 ? 'Year' : 'Years'}`;
+
+        // Compound Math
+        const months = years * 12;
+        const r = annualRate / 12;
+
+        let totalInvested = P + (PMT * months);
+        
+        // Future value of initial capital: P * (1 + r)^n
+        const fvInitial = P * Math.pow(1 + r, months);
+        // Future value of monthly additions: PMT * (((1 + r)^n - 1) / r) * (1 + r)
+        const fvMonthly = PMT > 0 ? PMT * ((Math.pow(1 + r, months) - 1) / r) * (1 + r) : 0;
+        
+        const futureWealth = Math.round(fvInitial + fvMonthly);
+
+        document.getElementById('calc-total-invested').innerText = `₹${totalInvested.toLocaleString('en-IN')}`;
+        document.getElementById('calc-future-wealth').innerText = `₹${futureWealth.toLocaleString('en-IN')}`;
+
+        updateChart(totalInvested, futureWealth - totalInvested);
+      }
+
+      [inputInitial, inputMonthly, inputRate, inputYears].forEach(el => {
+        el.addEventListener('input', updateCalculation);
+      });
+
+      // Initialize Chart.js Donut Visual
+      const ctx = document.getElementById('calculatorChart').getContext('2d');
+      calcChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Total Invested Capital', 'Est. Profit Returns'],
+          datasets: [{
+            data: [50000, 50000],
+            backgroundColor: ['#1c2436', '#00e676'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 11 }
+              }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+
+      updateCalculation();
+    }
+
+    function updateChart(invested, profit) {
+      if (!calcChart) return;
+      calcChart.data.datasets[0].data = [invested, Math.max(0, profit)];
+      calcChart.update();
+    }
+
+    /* 3. Sentiment Meter Gauge Controller */
+    function refreshSentiment() {
+      const needle = document.getElementById('gauge-needle');
+      const scoreEl = document.getElementById('sentiment-score');
+      const statusEl = document.getElementById('sentiment-status');
+      const descEl = document.getElementById('sentiment-desc');
+
+      if (!needle) return;
+
+      // Random sentiment simulation
+      const randomScore = Math.floor(Math.random() * 40) + 55; // 55 to 95 range
+      // Angle mapping: 0 score = -90deg, 100 score = +90deg
+      const angle = ((randomScore / 100) * 180) - 90;
+
+      needle.style.transform = `rotate(${angle}deg)`;
+      scoreEl.innerText = `${randomScore} / 100`;
+
+      if (randomScore >= 75) {
+        statusEl.innerText = "STRONGLY BULLISH MARKET STRUCTURE";
+        statusEl.className = "text-sm font-mono font-bold text-bull tracking-wider";
+        descEl.innerText = "Heavy institutional buying in heavyweights. Breakout probability high.";
+      } else if (randomScore >= 60) {
+        statusEl.innerText = "MODERATELY BULLISH / BUY ON DIPS";
+        statusEl.className = "text-sm font-mono font-bold text-cyan-electric tracking-wider";
+        descEl.innerText = "Consolidation near resistance with strong support floors intact.";
+      } else {
+        statusEl.innerText = "NEUTRAL / RANGEBOUND";
+        statusEl.className = "text-sm font-mono font-bold text-yellow-400 tracking-wider";
+        descEl.innerText = "Caution advised. Wait for confirmation above key trigger levels.";
+      }
+    }
+
+    /* 4. Signals Renderer & Filter Engine */
+    function renderSignals(filter = 'all') {
+      const container = document.getElementById('signals-grid');
+      if (!container) return;
+
+      const filtered = filter === 'all' 
+        ? signalsData 
+        : signalsData.filter(s => s.category === filter);
+
+      container.innerHTML = filtered.map(s => `
+        <div class="glass-card rounded-2xl p-5 border border-terminal-border hover:border-bull/50 transition-all space-y-4 relative overflow-hidden">
+          <div class="flex items-center justify-between border-b border-terminal-border pb-3">
+            <span class="text-[10px] font-mono text-cyan-electric bg-cyan-electric/10 px-2.5 py-1 rounded font-bold">
+              ${s.type}
+            </span>
+            <span class="text-[11px] font-mono text-gray-400 flex items-center gap-1">
+              <i class="fa-regular fa-clock"></i> ${s.time}
+            </span>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="font-mono font-extrabold text-lg text-white">${s.symbol}</h3>
+              <span class="text-xs font-mono text-bull font-bold">${s.action}</span>
+            </div>
+            <span class="text-xs font-mono text-bull bg-bull/10 border border-bull/30 px-2.5 py-1 rounded-full font-bold">
+              ${s.status}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 bg-terminal-bg p-3 rounded-xl border border-terminal-border text-center font-mono text-xs">
+            <div>
+              <span class="text-gray-400 text-[10px] block">ENTRY</span>
+              <span class="text-white font-bold">${s.entry}</span>
+            </div>
+            <div>
+              <span class="text-gray-400 text-[10px] block">TARGET</span>
+              <span class="text-bull font-bold">${s.target}</span>
+            </div>
+            <div>
+              <span class="text-gray-400 text-[10px] block">STOP LOSS</span>
+              <span class="text-bear font-bold">${s.sl}</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center text-xs font-mono text-gray-300">
+            <span>Risk-Reward Ratio: <strong class="text-white">${s.rr}</strong></span>
+          </div>
+
+          <button onclick="handleTelegramClick()" class="telegram-link w-full bg-bull/10 hover:bg-bull/20 text-bull font-mono font-bold border border-bull/40 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all">
+            <i class="fa-brands fa-telegram"></i>
+            <span>RECEIVE INSTANT TELEGRAM ALERT</span>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function filterSignals(category) {
+      document.querySelectorAll('.signal-tab').forEach(tab => {
+        tab.className = "signal-tab bg-terminal-card border border-terminal-border text-gray-300 hover:text-white px-4 py-2.5 rounded-xl transition-all";
+      });
+      event.target.className = "signal-tab active-tab bg-bull text-terminal-bg font-bold px-4 py-2.5 rounded-xl transition-all";
+      renderSignals(category);
+    }
+
+    /* 5. FAQ Accordion Handler */
+    function toggleFaq(id) {
+      const ans = document.getElementById(`faq-ans-${id}`);
+      const icon = document.getElementById(`faq-icon-${id}`);
+
+      if (ans.classList.contains('hidden')) {
+        ans.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+      } else {
+        ans.classList.add('hidden');
+        icon.classList.remove('rotate-180');
+      }
+    }
+
+    /* Page Setup & DOM Binding */
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // Apply CONFIG Values to DOM
+      const heroTraders = document.getElementById('stat-hero-traders');
+      if (heroTraders) heroTraders.textContent = `${CONFIG.activeTraders} Active Traders`;
+
+      const accuracy = document.getElementById('metric-accuracy');
+      if (accuracy) accuracy.textContent = CONFIG.accuracyRate;
+
+      // Initialize Dynamic Components
+      initTickerTape();
+      initCalculator();
+      renderSignals('all');
+    });
+  </script>
+</body>
+</html>
