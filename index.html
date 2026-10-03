@@ -1,22 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-<head><!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1395084768949631');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1395084768949631&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BullPulse Terminal | Institutional Market Insights & Trading Signals</title>
@@ -152,6 +136,26 @@ src="https://www.facebook.com/tr?id=1395084768949631&ev=PageView&noscript=1"
       transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
   </style>
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+
+  fbq('init', '1405034931165129');
+  fbq('track', 'PageView');
+  </script>
+  <noscript>
+    <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1405034931165129&ev=PageView&noscript=1"/>
+  </noscript>
+  <!-- End Meta Pixel Code -->
+
 </head>
 <body class="antialiased selection:bg-bull selection:text-black pb-20 md:pb-0">
 
@@ -799,6 +803,11 @@ src="https://www.facebook.com/tr?id=1395084768949631&ev=PageView&noscript=1"
 
     // Global Telegram Redirect Function
     function handleTelegramClick() {
+      // Meta Pixel: track Telegram CTA clicks
+      if (typeof fbq === "function") {
+        fbq("track", "Lead");
+      }
+
       if (CONFIG.telegramUrl) {
         window.open(CONFIG.telegramUrl, '_blank', 'noopener,noreferrer');
       } else {
